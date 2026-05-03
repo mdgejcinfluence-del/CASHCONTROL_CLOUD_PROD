@@ -5,41 +5,49 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # 1. Récupération du code source depuis ton dépôt GitHub
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      # 2. Installation de Flutter (Version stable 3.19.0 pour compatibilité maximale)
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          # On fixe une version ultra-stable pour éviter les bugs serveur
-          flutter-version: '3.19.0' 
+          flutter-version: '3.19.0'
           channel: 'stable'
-          cache: false # On désactive le cache pour éviter de traîner des erreurs
+          cache: false # Désactivé pour éviter les conflits de fichiers corrompus
 
+      # 3. Réparation et Préparation (MDGEJ-C DIGITAL Standard)
       - name: Nettoyage et Réparation
         run: |
+          # Identification dynamique du dossier projet
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
+          echo "Projet détecté dans : $PROJECT_ROOT"
           cd $PROJECT_ROOT
           
-          # Nettoyage profond des anciens fichiers de build
+          # Nettoyage profond des anciens résidus de build
           flutter clean
           
-          # Reconstruction de la structure Android
-          flutter create . --platforms android
+          # Reconstruction forcée de la structure Android (Fixe l'erreur Gradle)
+          flutter create . --platforms android --org com.mdgejcdigital
           
-          # Réparation des dépendances (Hive, Crypto)
-          rm -rf pubspec.lock
+          # Suppression du verrou et installation des dépendances (Hive, Crypto, Encrypt)
+          rm -f pubspec.lock
           flutter pub get
-
+        
+      # 4. Compilation de l'APK avec le moteur "Réalité 100%"
       - name: Compiler l'APK Réalité 100%
         run: |
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
           cd $PROJECT_ROOT
-          # On ajoute --no-tree-shake-icons pour éviter certains bugs de compilation
+          
+          # Compilation Release avec correction des icônes (Fixe Target kernel_snapshot)
           flutter build apk --release --no-tree-shake-icons
         
+      # 5. Livraison de l'APK final pour MDGEJ-C DIGITAL
       - name: Livraison de l'APK
         uses: actions/upload-artifact@v4
         with:
           name: cashcontrol-release
           path: "**/build/app/outputs/flutter-apk/app-release.apk"
+          if-no-files-found: error
