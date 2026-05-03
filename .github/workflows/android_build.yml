@@ -5,31 +5,41 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # 1. Récupération du code source depuis ton dépôt GitHub
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
+      # 2. Installation de l'environnement Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
+      # 3. Localisation dynamique et installation des dépendances (Hive, Crypto, etc.)
       - name: Localiser et Préparer le Projet
         run: |
-          # Cette commande cherche le dossier contenant pubspec.yaml
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
+          if [ -z "$PROJECT_ROOT" ]; then
+            echo "ERREUR : pubspec.yaml non trouvé !"
+            exit 1
+          fi
           echo "Projet trouvé dans : $PROJECT_ROOT"
           cd $PROJECT_ROOT
           flutter pub get
         
+      # 4. Compilation de l'APK incluant les frais de 1.25% (Binance, Slippage, VPS)
       - name: Compiler l'APK Réalité 100%
         run: |
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
           cd $PROJECT_ROOT
           flutter build apk --release
         
+      # 5. Exportation du fichier APK final pour téléchargement
       - name: Livraison de l'APK
         uses: actions/upload-artifact@v4
         with:
           name: cashcontrol-release
-          # On récupère l'APK peu importe où il a été généré
+          # Recherche récursive pour garantir la capture de l'APK généré
           path: "**/build/app/outputs/flutter-apk/app-release.apk"
+          if-no-files-found: error
