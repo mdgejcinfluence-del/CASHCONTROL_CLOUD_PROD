@@ -5,41 +5,50 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. Récupération du code source depuis ton dépôt GitHub
+      # 1. Récupération du code source
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Installation de l'environnement Flutter
+      # 2. Installation de Flutter (Version stable)
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      # 3. Localisation dynamique et installation des dépendances (Hive, Crypto, etc.)
-      - name: Localiser et Préparer le Projet
+      # 3. Préparation et Réparation du Projet
+      - name: Localiser et Réparer le Projet
         run: |
+          # Recherche du dossier contenant le pubspec.yaml
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
+          
           if [ -z "$PROJECT_ROOT" ]; then
             echo "ERREUR : pubspec.yaml non trouvé !"
             exit 1
           fi
-          echo "Projet trouvé dans : $PROJECT_ROOT"
+          
+          echo "Projet détecté dans : $PROJECT_ROOT"
           cd $PROJECT_ROOT
+          
+          # Force la réparation de la structure Gradle si nécessaire
+          flutter create . --platforms android
+          
+          # Installation des dépendances (Hive, Crypto, etc.)
           flutter pub get
         
-      # 4. Compilation de l'APK incluant les frais de 1.25% (Binance, Slippage, VPS)
+      # 4. Compilation de l'APK (Réalité 100%)
       - name: Compiler l'APK Réalité 100%
         run: |
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
           cd $PROJECT_ROOT
+          
+          # Build en mode release pour François
           flutter build apk --release
         
-      # 5. Exportation du fichier APK final pour téléchargement
+      # 5. Livraison de l'APK final pour téléchargement
       - name: Livraison de l'APK
         uses: actions/upload-artifact@v4
         with:
           name: cashcontrol-release
-          # Recherche récursive pour garantir la capture de l'APK généré
           path: "**/build/app/outputs/flutter-apk/app-release.apk"
           if-no-files-found: error
