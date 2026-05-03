@@ -5,44 +5,41 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. Récupération du code source
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Installation de Flutter (Version stable pour tes besoins au Bénin)
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
-          cache: false
+          cache: false 
 
-      # 3. Réparation et Installation Forcée (MDGEJ-C DIGITAL Protocol)
-      - name: Nettoyage et Réparation
+      - name: Force Dependency Resolution
         run: |
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
           cd $PROJECT_ROOT
           
-          # Nettoyage du cache pour forcer le téléchargement de 'intl' et 'encrypt'
+          # 1. Nettoyage radical des caches
+          flutter clean
           flutter pub cache clean -f
           
-          # Reconstruction de la structure Android (Fixe l'erreur Gradle 30.0.3)
+          # 2. Reconstruction de la structure Android
           flutter create . --platforms android --org com.mdgejcdigital
           
-          # Installation fraîche des dépendances (Hive, Crypto, Encrypt, Intl)
+          # 3. Force l'installation des dépendances manquantes
           rm -f pubspec.lock
           flutter pub get
-        
-      # 4. Compilation de l'APK (Réalité 100%)
+          flutter pub add intl encrypt crypto hive hive_flutter
+
       - name: Compiler l'APK Réalité 100%
         run: |
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
           cd $PROJECT_ROOT
           
-          # Compilation avec les paramètres de sécurité et de frais réels (1.25%)
+          # Build final incluant les 1.25% de frais et le chiffrement AES
           flutter build apk --release --no-tree-shake-icons
         
-      # 5. Livraison de l'APK pour François
       - name: Livraison de l'APK
         uses: actions/upload-artifact@v4
         with:
