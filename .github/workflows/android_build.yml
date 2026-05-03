@@ -1,18 +1,220 @@
-name: Build Android APK
-on: [push]
+// CASHCONTROL CLOUD - Système de Gestion MDGEJ-C DIGITAL
+// Version: 2.0.0 - Réalité 100% (Binance, Slippage, VPS inclut)
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-      - run: flutter pub get
-      - run: flutter build apk --release
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
-        with:
-          name: cashcontrol-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+  await Hive.openBox('settings');
+  await Hive.openBox('ventes');
+  runApp(CashControlApp());
+}
+
+class CashControlApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final settings = Hive.box('settings');
+    // Vérifie si le Patron a déjà configuré le PIN
+    bool isConfigured = settings.get('isConfigured', defaultValue: false);
+
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'CASHCONTROL CLOUD',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+      ),
+      // Si configuré -> Espace Employé, sinon -> Configuration Patron
+      home: isConfigured ? EspaceEmploye() : ConfigurationPatron(),
+    );
+  }
+}
+
+// --- ÉTAPE 0 : CONFIGURATION PATRON (SCÉLLÉ DE SÉCURITÉ) ---
+class ConfigurationPatron extends StatefulWidget {
+  @override
+  _ConfigurationPatronState createState() => _ConfigurationPatronState();
+}
+
+class _ConfigurationPatronState extends State<ConfigurationPatron> {
+  final TextEditingController _pinController = TextEditingController();
+  final TextEditingController _waController = TextEditingController();
+
+  void _sauvegarderConfig() {
+    if (_pinController.text.length == 4 && _waController.text.isNotEmpty) {
+      final settings = Hive.box('settings');
+      
+      // Sécurité : Hachage du PIN en SHA-256
+      var bytes = utf8.encode(_pinController.text);
+      var digest = sha256.convert(bytes);
+      
+      settings.put('pinHash', digest.toString());
+      settings.put('whatsappPatron', _waController.text);
+      settings.put('isConfigured', true);
+      
+      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => EspaceEmploye()));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Veuillez remplir tous les champs (PIN de 4 chiffres)."))
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.all(30),
+          child: Column(
+            children: [
+              Icon(Icons.admin_panel_settings, size: 100, color: Colors.blue),
+              SizedBox(height: 10),
+              Text("MDGEJ-C DIGITAL", style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              Text("Configuration initiale Patron", style: TextStyle(color: Colors.grey)),
+              SizedBox(height: 30),
+              TextField(
+                controller: _pinController,
+                decoration: InputDecoration(labelText: "Créer PIN secret (4 chiffres)", border: OutlineInputBorder()),
+                keyboardType: TextInputType.number,
+                obscureText: true,
+              ),
+              SizedBox(height: 15),
+              TextField(
+                controller: _waController,
+                decoration: InputDecoration(labelText: "Numéro WhatsApp de réception (ex: 229...)", border: OutlineInputBorder()),
+                keyboardType: TextInputType.phone,
+              ),
+              SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _sauvegarderConfig,
+                  child: Text("SCELLER LE SYSTÈME"),
+                ),
+              )
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// --- ÉTAPE 1 : ESPACE EMPLOYÉ (SAISIE QUOTIDIENNE) ---
+class EspaceEmploye extends StatefulWidget {
+  @override
+  _EspaceEmployeState createState() => _EspaceEmployeState();
+}
+
+class _EspaceEmployeState extends State<EspaceEmploye> {
+  // Liste des services pour la boutique de François
+  final List<Map<String, dynamic>> services = [
+    {"nom": "Lavage Complet", "prix": 3000, "commission": 1200},
+    {"nom": "Lavage Simple", "prix": 1500, "commission": 800},
+    {"nom": "Lavage Intérieur", "prix": 1000, "commission": 400},
+  ];
+
+  void _enregistrerVente(Map service) {
+    final ventesBox = Hive.box('ventes');
+    ventesBox.add({
+      "service": service['nom'],
+      "prix": service['prix'],
+      "commission": service['commission'],
+      "date": DateTime.now().toIso8601String()
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("${service['nom']} ajouté !"))
+    );
+  }
+
+  void _cloturerEtEnvoyer() async {
+    final settings = Hive.box('settings');
+    final ventesBox = Hive.box('ventes');
+    String numero = settings.get('whatsappPatron');
+
+    // Moteur "Réalité 100%"
+    double recettesBrutes = 0;
+    double totalCommissions = 0;
+    
+    for (var i = 0; i < ventesBox.length; i++) {
+      var v = ventesBox.getAt(i);
+      recettesBrutes += v['prix'];
+      totalCommissions += v['commission'];
+    }
+
+    // Déductions MDGEJ-C DIGITAL (Calcul journalier)
+    double chargesFixesJour = 7333; // Loyer + Eau + Électricité / 30
+    double salairesFixesJour = 3500; // Amina + Fatima / 30
+    
+    double margeBrute = recettesBrutes - totalCommissions - chargesFixesJour - salairesFixesJour;
+    
+    // Frais techniques de 1.25% (Binance 0.1%, Slippage 0.15%, VPS 1%)
+    double fraisTech = margeBrute > 0 ? margeBrute * 0.0125 : 0;
+    double netReel = margeBrute - fraisTech;
+
+    // Création du rapport chiffré
+    Map rapport = {
+      "boutique": "MDGEJ-C DIGITAL",
+      "date": DateTime.now().toString().split(' ')[0],
+      "ventes": recettesBrutes,
+      "com_payees": totalCommissions,
+      "net_reel": netReel.toStringAsFixed(0),
+      "frais_tech": fraisTech.toStringAsFixed(0)
+    };
+    
+    String rapportJSON = jsonEncode(rapport);
+    String base64Rapport = base64Encode(utf8.encode(rapportJSON));
+    
+    // URL WhatsApp
+    String message = "RAPPORT_SÉCURISÉ_MDGEJ-C:\n$base64Rapport";
+    String url = "https://wa.me/$numero?text=${Uri.encodeComponent(message)}";
+
+    if (await canLaunch(url)) {
+      await launch(url);
+      ventesBox.clear(); // On vide la caisse après l'envoi réussi
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Saisie Ventes (François)"),
+        backgroundColor: Colors.blue,
+      ),
+      body: ListView.builder(
+        itemCount: services.length,
+        itemBuilder: (context, i) => Card(
+          margin: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          child: ListTile(
+            leading: Icon(Icons.shopping_basket, color: Colors.blue),
+            title: Text(services[i]['nom']),
+            subtitle: Text("${services[i]['prix']} FCFA"),
+            trailing: IconButton(
+              icon: Icon(Icons.add_circle, color: Colors.green, size: 30),
+              onPressed: () => _enregistrerVente(services[i]),
+            ),
+          ),
+        ),
+      ),
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.all(15),
+        height: 80,
+        child: ElevatedButton.icon(
+          onPressed: _cloturerEtEnvoyer,
+          icon: Icon(Icons.send),
+          label: Text("ENVOYER LE RAPPORT AU PATRON", style: TextStyle(fontWeight: FontWeight.bold)),
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+        ),
+      ),
+    );
+  }
+}
