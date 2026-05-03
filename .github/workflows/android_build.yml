@@ -4,23 +4,29 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: cash_control_cloud  # <--- On dit à GitHub d'entrer ici
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-      
+          cache: true
+
       - name: Install dependencies
-        run: flutter pub get
+        # On ajoute 'cd' pour entrer dans ton dossier avant de lancer la commande
+        run: |
+          cd cash_control_cloud
+          flutter pub get
         
       - name: Build APK
-        run: flutter build apk --release
+        run: |
+          cd cash_control_cloud
+          flutter build apk --release
         
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: cashcontrol-release
+          # Chemin précis vers l'APK généré à l'intérieur du sous-dossier
           path: cash_control_cloud/build/app/outputs/flutter-apk/app-release.apk
