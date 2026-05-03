@@ -4,15 +4,23 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cash_control_cloud  # <--- On dit à GitHub d'entrer ici
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-      - run: flutter pub get
-      - run: flutter build apk --release
+      
+      - name: Install dependencies
+        run: flutter pub get
+        
+      - name: Build APK
+        run: flutter build apk --release
+        
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: cashcontrol-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: cash_control_cloud/build/app/outputs/flutter-apk/app-release.apk
