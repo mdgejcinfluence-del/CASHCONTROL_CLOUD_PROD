@@ -9,42 +9,42 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Installation de Flutter (Version stable 3.19.0 pour compatibilité maximale)
+      # 2. Installation de l'environnement Flutter (Version stable pour la compatibilité au Bénin)
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
-          cache: false # Désactivé pour éviter les conflits de fichiers corrompus
+          cache: false # Désactivé pour forcer une installation propre des dépendances
 
-      # 3. Réparation et Préparation (MDGEJ-C DIGITAL Standard)
+      # 3. Réparation de la structure et installation des dépendances (MDGEJ-C DIGITAL)
       - name: Nettoyage et Réparation
         run: |
-          # Identification dynamique du dossier projet
+          # Identification du dossier racine du projet
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
           echo "Projet détecté dans : $PROJECT_ROOT"
           cd $PROJECT_ROOT
           
-          # Nettoyage profond des anciens résidus de build
+          # Nettoyage des anciens fichiers de build
           flutter clean
           
-          # Reconstruction forcée de la structure Android (Fixe l'erreur Gradle)
+          # Reconstruction forcée du dossier Android pour corriger les erreurs Gradle
           flutter create . --platforms android --org com.mdgejcdigital
           
-          # Suppression du verrou et installation des dépendances (Hive, Crypto, Encrypt)
+          # Installation des bibliothèques nécessaires (Hive, Crypto, Encrypt, Intl)
           rm -f pubspec.lock
           flutter pub get
         
-      # 4. Compilation de l'APK avec le moteur "Réalité 100%"
+      # 4. Compilation de l'APK incluant les frais réels de 1.25%
       - name: Compiler l'APK Réalité 100%
         run: |
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
           cd $PROJECT_ROOT
           
-          # Compilation Release avec correction des icônes (Fixe Target kernel_snapshot)
+          # Build final en mode Release sans erreur d'icônes
           flutter build apk --release --no-tree-shake-icons
         
-      # 5. Livraison de l'APK final pour MDGEJ-C DIGITAL
+      # 5. Livraison de l'APK final pour François
       - name: Livraison de l'APK
         uses: actions/upload-artifact@v4
         with:
