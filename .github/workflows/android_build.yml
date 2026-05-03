@@ -13,20 +13,23 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Install dependencies
-        # On ajoute 'cd' pour entrer dans ton dossier avant de lancer la commande
+      - name: Localiser et Préparer le Projet
         run: |
-          cd cash_control_cloud
+          # Cette commande cherche le dossier contenant pubspec.yaml
+          PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
+          echo "Projet trouvé dans : $PROJECT_ROOT"
+          cd $PROJECT_ROOT
           flutter pub get
         
-      - name: Build APK
+      - name: Compiler l'APK Réalité 100%
         run: |
-          cd cash_control_cloud
+          PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
+          cd $PROJECT_ROOT
           flutter build apk --release
         
-      - name: Upload APK
+      - name: Livraison de l'APK
         uses: actions/upload-artifact@v4
         with:
           name: cashcontrol-release
-          # Chemin précis vers l'APK généré à l'intérieur du sous-dossier
-          path: cash_control_cloud/build/app/outputs/flutter-apk/app-release.apk
+          # On récupère l'APK peu importe où il a été généré
+          path: "**/build/app/outputs/flutter-apk/app-release.apk"
