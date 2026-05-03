@@ -5,46 +5,44 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. Récupération du code source depuis ton dépôt GitHub
+      # 1. Récupération du code source
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      # 2. Installation de l'environnement Flutter (Version stable pour la compatibilité au Bénin)
+      # 2. Installation de Flutter (Version stable pour tes besoins au Bénin)
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: '3.19.0'
           channel: 'stable'
-          cache: false # Désactivé pour forcer une installation propre des dépendances
+          cache: false
 
-      # 3. Réparation de la structure et installation des dépendances (MDGEJ-C DIGITAL)
+      # 3. Réparation et Installation Forcée (MDGEJ-C DIGITAL Protocol)
       - name: Nettoyage et Réparation
         run: |
-          # Identification du dossier racine du projet
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
-          echo "Projet détecté dans : $PROJECT_ROOT"
           cd $PROJECT_ROOT
           
-          # Nettoyage des anciens fichiers de build
-          flutter clean
+          # Nettoyage du cache pour forcer le téléchargement de 'intl' et 'encrypt'
+          flutter pub cache clean -f
           
-          # Reconstruction forcée du dossier Android pour corriger les erreurs Gradle
+          # Reconstruction de la structure Android (Fixe l'erreur Gradle 30.0.3)
           flutter create . --platforms android --org com.mdgejcdigital
           
-          # Installation des bibliothèques nécessaires (Hive, Crypto, Encrypt, Intl)
+          # Installation fraîche des dépendances (Hive, Crypto, Encrypt, Intl)
           rm -f pubspec.lock
           flutter pub get
         
-      # 4. Compilation de l'APK incluant les frais réels de 1.25%
+      # 4. Compilation de l'APK (Réalité 100%)
       - name: Compiler l'APK Réalité 100%
         run: |
           PROJECT_ROOT=$(find . -name pubspec.yaml -exec dirname {} \;)
           cd $PROJECT_ROOT
           
-          # Build final en mode Release sans erreur d'icônes
+          # Compilation avec les paramètres de sécurité et de frais réels (1.25%)
           flutter build apk --release --no-tree-shake-icons
         
-      # 5. Livraison de l'APK final pour François
+      # 5. Livraison de l'APK pour François
       - name: Livraison de l'APK
         uses: actions/upload-artifact@v4
         with:
